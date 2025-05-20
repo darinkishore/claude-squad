@@ -27,6 +27,9 @@ type Config struct {
 	AutoYes bool `json:"auto_yes"`
 	// DaemonPollInterval is the interval (ms) at which the daemon polls sessions for autoyes mode.
 	DaemonPollInterval int `json:"daemon_poll_interval"`
+	// PreStartScript is an optional script run after a worktree is created
+	// or resumed.
+	PreStartScript string `json:"pre_start_script"`
 }
 
 // DefaultConfig returns the default configuration
@@ -35,6 +38,7 @@ func DefaultConfig() *Config {
 		DefaultProgram:     "claude",
 		AutoYes:            false,
 		DaemonPollInterval: 1000,
+		PreStartScript:     "",
 	}
 }
 

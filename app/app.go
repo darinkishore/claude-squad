@@ -120,6 +120,7 @@ func newHome(ctx context.Context, program string, autoYes bool) *home {
 
 	// Add loaded instances to the list
 	for _, instance := range instances {
+		instance.PreStartScript = appConfig.PreStartScript
 		// Call the finalizer immediately.
 		h.list.AddInstance(instance)()
 		if autoYes {
@@ -424,9 +425,10 @@ func (m *home) handleKeyPress(msg tea.KeyMsg) (mod tea.Model, cmd tea.Cmd) {
 				fmt.Errorf("you can't create more than %d instances", GlobalInstanceLimit))
 		}
 		instance, err := session.NewInstance(session.InstanceOptions{
-			Title:   "",
-			Path:    ".",
-			Program: m.program,
+			Title:          "",
+			Path:           ".",
+			Program:        m.program,
+			PreStartScript: m.appConfig.PreStartScript,
 		})
 		if err != nil {
 			return m, m.handleError(err)
@@ -445,9 +447,10 @@ func (m *home) handleKeyPress(msg tea.KeyMsg) (mod tea.Model, cmd tea.Cmd) {
 				fmt.Errorf("you can't create more than %d instances", GlobalInstanceLimit))
 		}
 		instance, err := session.NewInstance(session.InstanceOptions{
-			Title:   "",
-			Path:    ".",
-			Program: m.program,
+			Title:          "",
+			Path:           ".",
+			Program:        m.program,
+			PreStartScript: m.appConfig.PreStartScript,
 		})
 		if err != nil {
 			return m, m.handleError(err)

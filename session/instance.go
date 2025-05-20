@@ -8,6 +8,7 @@ import (
 
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -51,6 +52,9 @@ type Instance struct {
 	AutoYes bool
 	// Prompt is the initial prompt to pass to the instance on startup
 	Prompt string
+	// PreStartScript is a script executed after the worktree is prepared
+	// when starting or resuming the instance.
+	PreStartScript string
 
 	// DiffStats stores the current git diff statistics
 	diffStats *git.DiffStats
@@ -150,6 +154,9 @@ type InstanceOptions struct {
 	Program string
 	// If AutoYes is true, then
 	AutoYes bool
+	// PreStartScript specifies an optional script to run after the worktree
+	// is prepared.
+	PreStartScript string
 }
 
 func NewInstance(opts InstanceOptions) (*Instance, error) {
@@ -162,15 +169,16 @@ func NewInstance(opts InstanceOptions) (*Instance, error) {
 	}
 
 	return &Instance{
-		Title:     opts.Title,
-		Status:    Ready,
-		Path:      absPath,
-		Program:   opts.Program,
-		Height:    0,
-		Width:     0,
-		CreatedAt: t,
-		UpdatedAt: t,
-		AutoYes:   false,
+		Title:          opts.Title,
+		Status:         Ready,
+		Path:           absPath,
+		Program:        opts.Program,
+		Height:         0,
+		Width:          0,
+		CreatedAt:      t,
+		UpdatedAt:      t,
+		AutoYes:        false,
+		PreStartScript: opts.PreStartScript,
 	}, nil
 }
 
@@ -226,6 +234,16 @@ func (i *Instance) Start(firstTimeSetup bool) error {
 		if err := i.gitWorktree.Setup(); err != nil {
 			setupErr = fmt.Errorf("failed to setup git worktree: %w", err)
 			return setupErr
+		}
+
+		if i.PreStartScript != "" {
+			cmd := exec.Command("/bin/sh", "-c", i.PreStartScript)
+			cmd.Dir = i.gitWorktree.GetWorktreePath()
+			if err := cmd.Run(); err != nil {
+				setupErr = fmt.Errorf("failed to run pre-start script: %w", err)
+				log.ErrorLog.Print(setupErr)
+				return setupErr
+			}
 		}
 
 		// Create new session
@@ -447,6 +465,19 @@ func (i *Instance) Resume() error {
 	if err := i.gitWorktree.Setup(); err != nil {
 		log.ErrorLog.Print(err)
 		return fmt.Errorf("failed to setup git worktree: %w", err)
+	}
+
+	if i.PreStartScript != "" {
+		cmd := exec.Command("/bin/sh", "-c", i.PreStartScript)
+		cmd.Dir = i.gitWorktree.GetWorktreePath()
+		if err := cmd.Run(); err != nil {
+			log.ErrorLog.Printf("failed to run pre-start script: %v", err)
+			// Cleanup worktree on failure
+			if cleanupErr := i.gitWorktree.Cleanup(); cleanupErr != nil {
+				log.ErrorLog.Printf("cleanup error after script failure: %v", cleanupErr)
+			}
+			return fmt.Errorf("failed to run pre-start script: %w", err)
+		}
 	}
 
 	// Create new tmux session

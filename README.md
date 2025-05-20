@@ -72,6 +72,8 @@ cs
    - Codex: `cs -p "codex"`
    - Aider: `cs -p "aider ..."`
 - Make this the default, by modifying the config file (locate with `cs debug`)
+- Set `pre_start_script` in the config to run a shell script after each worktree
+  is prepared
 
 <br />
 
